@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "90757190273",
+    "project_id": "pbm-uas-c67aa",
+    "storage_bucket": "pbm-uas-c67aa.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:90757190273:android:931786bbf7d1e5dbabb380",
+        "android_client_info": {
+          "package_name": "com.example.pbm_absensi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "90757190273-78d56rill250650j04smcp0p7sj9ea2e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6lw3-DGyseaq2QVOVwwFixVgs-RqZs3Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "90757190273-78d56rill250650j04smcp0p7sj9ea2e.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "90757190273-gi6i52qeccq1kiqsff9jfrbifptrtf20.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.temanAgroAdmin"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:90757190273:android:f5278c2cce8d987fabb380",
+        "android_client_info": {
+          "package_name": "com.ppl.teman_agro_admin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "90757190273-78d56rill250650j04smcp0p7sj9ea2e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6lw3-DGyseaq2QVOVwwFixVgs-RqZs3Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "90757190273-78d56rill250650j04smcp0p7sj9ea2e.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "90757190273-gi6i52qeccq1kiqsff9jfrbifptrtf20.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.temanAgroAdmin"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
