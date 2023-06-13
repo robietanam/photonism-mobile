@@ -7,6 +7,10 @@ class ScrollPositionNotifier extends StateNotifier<double> {
     print("NEW : ${newPosition}");
     state = newPosition;
   }
+
+  void resetScrollPosition() {
+    state = 0.0;
+  }
 }
 
 final scrollPositionProvider =

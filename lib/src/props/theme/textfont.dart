@@ -131,18 +131,21 @@ class TextNavbar extends StatelessWidget {
 }
 
 class TextDeskripsi1 extends StatelessWidget {
-  const TextDeskripsi1({super.key, required this.text, this.color});
+  const TextDeskripsi1(
+      {super.key, required this.text, this.color, this.isSelengkapnya});
 
   final String text;
   final Color? color;
+  final bool? isSelengkapnya;
 
   Color get _color => color != null ? color! : Colors.white;
+  bool get _isSelengkapnya => isSelengkapnya != null ? isSelengkapnya! : false;
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
-      overflow: TextOverflow.ellipsis,
+      overflow: (!_isSelengkapnya) ? TextOverflow.ellipsis : TextOverflow.clip,
       style:
           TextStyle(fontSize: 11, fontWeight: FontWeight.normal, color: _color),
     );

@@ -4,16 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pbm_uas/src/props/theme/textfont.dart';
 import 'package:pbm_uas/src/views/post/post_create_view.dart';
 
+import '../../controller/posts/provider/posts_provider.dart';
+import '../../controller/state/homepage/homepage_provider.dart';
 import '../../controller/state/scroll/scroll_provider.dart';
-import '../../props/paints/login_paint.dart';
-import '../../props/widgets/custom_text_button.dart';
-import '../../props/widgets/custom_text_field.dart';
-import '../post/post_create_view.dart';
+import '../../controller/user/provider/user_provider.dart';
+import '../../models/users.dart';
+import '../../props/widgets/alert.dart';
+import '../post/post_page_view.dart';
+import '../post/post_popular_view.dart';
 import '../profile/profile_page_view.dart';
 
 class HomePageView extends ConsumerStatefulWidget {
-  HomePageView({super.key});
+  HomePageView({super.key, required this.user});
 
+  final User user;
   @override
   ConsumerState<HomePageView> createState() => _HomePageViewState();
 }
@@ -21,6 +25,8 @@ class HomePageView extends ConsumerStatefulWidget {
 class _HomePageViewState extends ConsumerState<HomePageView> {
   late ScrollController controller;
   late List pages;
+
+  late User user;
 
   late double width;
   late double height;
@@ -33,12 +39,9 @@ class _HomePageViewState extends ConsumerState<HomePageView> {
     width = screenSize.width;
     height = screenSize.height;
 
+    user = widget.user;
+
     controller = ScrollController();
-    pages = [
-      PostPageView(controller: controller),
-      PostCreatePageView(width: width, height: height),
-      ProfilePageView(),
-    ];
   }
 
   @override
@@ -51,11 +54,58 @@ class _HomePageViewState extends ConsumerState<HomePageView> {
 
   int toRender = 0;
 
+  bool _isLoading = false;
   @override
   Widget build(BuildContext context) {
+    toRender = ref.watch(pageWidgetProvider);
+    pages = [
+      PostPageView(controller: controller, user: user),
+      PostCreatePageView(width: width, height: height, user: user),
+      ProfilePageView(user: user),
+      PostPopulerPageView(
+        user: user,
+      ),
+    ];
+
+    ref.watch(userDataNotifierProvider).maybeWhen(
+      orElse: () {
+        _isLoading = false;
+      },
+      loading: () {
+        _isLoading = true;
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          myLoadingPopup(context: context).then((value) {
+            _isLoading = false;
+          });
+        });
+      },
+      success: (userData) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (_isLoading) {
+            Navigator.pop(context);
+            _isLoading = false;
+          }
+          user = userData;
+          myAlertSuccess(context: context, text: 'Data berhasil dirubah');
+          ref.invalidate(userDataNotifierProvider);
+        });
+      },
+      failed: (message) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (_isLoading) {
+            Navigator.pop(context);
+            _isLoading = false;
+          }
+          myAlertError(
+              context: context, text: message ?? 'Telah terjadi error');
+        });
+      },
+    );
+
+    print(user.toJson());
     bool _isKepencetHome = (toRender == 0);
     bool _isKepencetProfile = (toRender == 2);
-
+    bool _isKepencetPopuler = (toRender == 3);
     void updateScroll() {
       if (controller.hasClients) {
         ref
@@ -69,6 +119,71 @@ class _HomePageViewState extends ConsumerState<HomePageView> {
       appBar: AppBar(
         elevation: 0,
         title: const TextAppBar(text: 'Photonism'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),
+            child: Material(
+              color: _isKepencetPopuler
+                  ? Colors.white
+                  : Theme.of(context).primaryColor,
+              borderRadius: const BorderRadius.all(
+                Radius.circular(20),
+              ),
+              child: InkWell(
+                splashColor: !_isKepencetPopuler
+                    ? Colors.white
+                    : Theme.of(context).primaryColor,
+                onTap: () {
+                  ref.watch(pageWidgetProvider.notifier).setPage(3);
+                },
+                borderRadius: BorderRadius.all(
+                  Radius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: Center(
+                          child: Icon(
+                            Icons.star,
+                            color: _isKepencetPopuler
+                                ? Theme.of(context).primaryColor
+                                : Colors.white,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: TextNavbar(
+                          text: 'Populer',
+                          color: _isKepencetPopuler
+                              ? Theme.of(context).primaryColor
+                              : Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Padding(
+          //   padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          //   child: GestureDetector(
+          //       onTap: () => ref.watch(pageWidgetProvider.notifier).setPage(3),
+          //       child: Column(
+          //         mainAxisAlignment: MainAxisAlignment.center,
+          //         children: [
+          //           Icon(Icons.star),
+          //           Text('Populer'),
+          //         ],
+          //       )),
+          // )
+        ],
       ),
       body: Stack(
         children: [
@@ -105,9 +220,17 @@ class _HomePageViewState extends ConsumerState<HomePageView> {
                               ? Colors.white
                               : Theme.of(context).primaryColor,
                           onTap: () {
-                            setState(() {
-                              toRender = 0;
-                            });
+                            print('kepencet');
+                            if (_isKepencetHome) {
+                              print('masuk');
+
+                              controller.animateTo(
+                                0,
+                                duration: Duration(milliseconds: 500),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                            ref.watch(pageWidgetProvider.notifier).setPage(0);
                           },
                           borderRadius: BorderRadius.all(
                             Radius.circular(20),
@@ -164,9 +287,7 @@ class _HomePageViewState extends ConsumerState<HomePageView> {
                             ),
                             onTap: () {
                               updateScroll();
-                              setState(() {
-                                toRender = 1;
-                              });
+                              ref.read(pageWidgetProvider.notifier).setPage(1);
                             },
                           ),
                         ),
@@ -188,9 +309,7 @@ class _HomePageViewState extends ConsumerState<HomePageView> {
                               : Theme.of(context).primaryColor,
                           onTap: () {
                             updateScroll();
-                            setState(() {
-                              toRender = 2;
-                            });
+                            ref.read(pageWidgetProvider.notifier).setPage(2);
                           },
                           borderRadius: BorderRadius.all(
                             Radius.circular(20),
@@ -232,249 +351,6 @@ class _HomePageViewState extends ConsumerState<HomePageView> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class PostPageView extends ConsumerStatefulWidget {
-  PostPageView({
-    super.key,
-    required this.controller,
-  });
-
-  ScrollController controller;
-
-  @override
-  ConsumerState<PostPageView> createState() => _PostPageViewState();
-}
-
-class _PostPageViewState extends ConsumerState<PostPageView> {
-  late ScrollController _scrollController;
-
-  @override
-  void initState() {
-    print("IM initState 1");
-    _scrollController = widget.controller;
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    print("IM GOT DISPOSED");
-    // SchedulerBinding.instance.addPostFrameCallback((_) {
-    //   print(_scrollController.offset);
-    // });
-    // print(_scrollController.position);
-    // ref
-    //     .read(scrollPositionProvider)
-    //     .updateScrollPosition(_scrollController.offset);
-    // _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _scrollController.animateTo(
-        ref.read(scrollPositionProvider.notifier).state,
-        duration: Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-    });
-    return SingleChildScrollView(
-      controller: _scrollController,
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          children: [
-            CardPostView(),
-            CardPostView(),
-            CardPostView(),
-            CardPostView(),
-            CardPostView(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class PostPageView2 extends StatefulWidget {
-  const PostPageView2({
-    super.key,
-  });
-
-  @override
-  State<PostPageView2> createState() => _PostPageViewState2();
-}
-
-class _PostPageViewState2 extends State<PostPageView2> {
-  @override
-  void initState() {
-    print("IM initState 2");
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    print("IM GOT DISPOSED 2");
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          children: [
-            CardPostView(),
-            CardPostView(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class CardPostView extends StatelessWidget {
-  const CardPostView({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.all(
-            Radius.circular(10),
-          ),
-        ),
-        padding: const EdgeInsets.all(15.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Row(
-              children: [
-                AvatarUserIcon(),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextJudul1(
-                        text: 'Avatar',
-                        color: Theme.of(context).colorScheme.onSecondary,
-                      ),
-                      TextDeskripsi1(
-                        text: 'Deskripsi',
-                        color: Theme.of(context).colorScheme.onSecondary,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(
-              height: 10,
-            ),
-            Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: Colors.amber,
-                shape: BoxShape.rectangle,
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              height: 400,
-              padding: const EdgeInsets.all(1),
-              child: Image.asset(
-                fit: BoxFit.cover,
-                'assets/images/noimage2.png',
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: () {},
-                      customBorder: const CircleBorder(),
-                      splashFactory: NoSplash.splashFactory,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Icon(
-                          Icons.favorite_border_outlined,
-                          size: 28,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () {},
-                      customBorder: const CircleBorder(),
-                      splashFactory: NoSplash.splashFactory,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Icon(
-                          Icons.share,
-                          size: 28,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                ElevatedButton(
-                    onPressed: () {},
-                    child: Row(
-                      children: [Icon(Icons.location_pin), Text('Lokasi')],
-                    ))
-              ],
-            ),
-            Container(
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextJudul1(
-                    text: 'Avatar',
-                    color: Theme.of(context).colorScheme.onSecondary,
-                  ),
-                  const SizedBox(
-                    width: 10,
-                  ),
-                  TextDeskripsi1(
-                    text:
-                        'Deskripsssssssssssssssssssssssssssssssssssasdasdasdawasdwasdawsdasdawasdawdasdawdasdwadwsssi',
-                    color: Theme.of(context).colorScheme.onSecondary,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class AvatarUserIcon extends StatelessWidget {
-  const AvatarUserIcon({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipOval(
-      child: SizedBox.fromSize(
-          size: const Size.fromRadius(25),
-          child: Image.asset('assets/images/noimage.png')),
     );
   }
 }

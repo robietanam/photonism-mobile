@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pbm_uas/src/controller/auth/provider/auth_provider.dart';
 import 'package:pbm_uas/src/props/theme/textfont.dart';
 import 'package:pbm_uas/src/props/widgets/custom_text_field.dart';
 import 'package:pbm_uas/src/views/auth/login_view.dart';
 
+import '../../controller/avatar/avatar_provider.dart';
 import '../../controller/state/scroll/scroll_provider.dart';
+import '../../controller/user/provider/user_provider.dart';
+import '../../models/users.dart';
+import '../../props/utils/preferences.dart';
+import '../../props/widgets/alert.dart';
+import '../../props/widgets/avatar.dart';
 
 class ProfilePageView extends ConsumerStatefulWidget {
-  const ProfilePageView({super.key});
+  const ProfilePageView({super.key, required this.user});
 
+  final User user;
   @override
   ConsumerState<ProfilePageView> createState() => _ProfilePageViewState();
 }
@@ -18,16 +27,38 @@ class _ProfilePageViewState extends ConsumerState<ProfilePageView> {
   late TextEditingController usernameController;
   late TextEditingController emailController;
 
+  late String? image;
+
+  late User user;
   @override
   void initState() {
     super.initState();
-    namaController = TextEditingController();
-    usernameController = TextEditingController();
-    emailController = TextEditingController();
+
+    user = widget.user;
+    image = user.profileImage;
+    print(image);
+
+    namaController = TextEditingController(text: user.namaLengkap);
+    usernameController = TextEditingController(text: user.username);
+    emailController = TextEditingController(text: user.email);
+  }
+
+  @override
+  void dispose() {
+    // SchedulerBinding.instance.addPostFrameCallback((_) {
+    //   ref.invalidate(profileAvatarNotifierProvider);
+    // });
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(userDataNotifierProvider).maybeWhen(
+          orElse: () {},
+          success: (userData) {
+            user = userData;
+          },
+        );
     return SingleChildScrollView(
       child: Container(
         padding: const EdgeInsets.all(60),
@@ -40,39 +71,7 @@ class _ProfilePageViewState extends ConsumerState<ProfilePageView> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      print('edit');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      shape: const CircleBorder(),
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.red,
-                    ),
-                    child: ClipOval(
-                      child: SizedBox.fromSize(
-                        size: const Size.fromRadius(90),
-                        child: Image(
-                          fit: BoxFit.cover,
-                          image: AssetImage('assets/images/noimage.png'),
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) {
-                              return child;
-                            }
-                            return const Center(
-                              child: SizedBox(
-                                width: 40,
-                                height: 40,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
+                  AvatarIcon(imageInheritURL: image),
                   Positioned(
                     right: 20,
                     bottom: 0,
@@ -95,11 +94,11 @@ class _ProfilePageViewState extends ConsumerState<ProfilePageView> {
               child: Column(
                 children: [
                   TextJudul1(
-                    text: "Salahudin Mahmud",
+                    text: user.namaLengkap,
                     color: Theme.of(context).primaryColor,
                   ),
                   TextDeskripsi1(
-                    text: '@salahudin123',
+                    text: '@${user.username}',
                     color: Theme.of(context).colorScheme.onSecondary,
                   )
                 ],
@@ -168,7 +167,24 @@ class _ProfilePageViewState extends ConsumerState<ProfilePageView> {
               height: 20,
             ),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                final imagePathNew = ref.read(profileAvatarNotifierProvider);
+                if (usernameController.text
+                    .contains(RegExp(r'^[A-Za-z0-9_]+$'))) {
+                  ref.read(userDataNotifierProvider.notifier).editProfile(
+                      id: user.id,
+                      user: user,
+                      email: emailController.text,
+                      username: usernameController.text,
+                      namaLengkap: namaController.text,
+                      profileImage: imagePathNew);
+                } else {
+                  myAlertError(
+                      context: context,
+                      text:
+                          'Username tidak boleh menggunakan karakter spesial');
+                }
+              },
               style: ElevatedButton.styleFrom(
                 alignment: Alignment.centerLeft,
                 shape: const RoundedRectangleBorder(
@@ -191,6 +207,8 @@ class _ProfilePageViewState extends ConsumerState<ProfilePageView> {
             ElevatedButton(
               onPressed: () {
                 ref.invalidate(scrollPositionProvider);
+                ref.invalidate(authNotifierProvider);
+                removeSharedPreferencesUser();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
